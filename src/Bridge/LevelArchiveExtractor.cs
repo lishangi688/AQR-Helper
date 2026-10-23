@@ -71,26 +71,16 @@ namespace AQRLiteHelper.Bridge
         {
             var root = Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar)
                 + Path.DirectorySeparatorChar;
-            var names = ZipEntryNames.Read(archivePath);
             using var archive = ZipFile.OpenRead(archivePath);
-            var entries = archive.Entries;
-            if (names != null && names.Count != entries.Count)
+            foreach (var entry in archive.Entries)
             {
-                Main.Mod?.Logger.Warning($"压缩包目录条目数不一致（{names.Count}/{entries.Count}），将使用默认文件名解码。");
-                names = null;
-            }
-
-            for (var i = 0; i < entries.Count; i++)
-            {
-                var entry = entries[i];
-                var entryName = names?[i] ?? entry.FullName;
-                var destination = Path.GetFullPath(Path.Combine(directory, entryName));
+                var destination = Path.GetFullPath(Path.Combine(directory, entry.FullName));
                 if (!destination.StartsWith(root, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidDataException("压缩包包含不安全的文件路径。");
                 }
 
-                if (entryName.EndsWith("/", StringComparison.Ordinal) || entryName.EndsWith("\\", StringComparison.Ordinal))
+                if (string.IsNullOrEmpty(entry.Name))
                 {
                     Directory.CreateDirectory(destination);
                     continue;

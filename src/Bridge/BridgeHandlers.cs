@@ -1,10 +1,8 @@
 using System;
-using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using AQRLiteHelper.Overlay;
 
 namespace AQRLiteHelper.Bridge
 {
@@ -66,12 +64,6 @@ namespace AQRLiteHelper.Bridge
             }
 
             var requestId = Guid.NewGuid().ToString("N");
-            var fileName = string.IsNullOrWhiteSpace(request.fileName)
-                ? $"level_{request.levelId}.zip"
-                : request.fileName;
-            Main.Mod?.Logger.Log($"收到打开请求：关卡 {request.levelId}（{fileName}）");
-            DownloadOverlayState.Begin(requestId, request.levelId, Path.GetFileNameWithoutExtension(fileName));
-            _ = LevelInfoClient.LoadIntoOverlayAsync(requestId, request.levelId);
             PublishProgress(requestId, request.levelId, "preparing", 0L, -1L, "正在准备下载。");
 
             try
@@ -85,6 +77,9 @@ namespace AQRLiteHelper.Bridge
                         requestId);
                 }
 
+                var fileName = string.IsNullOrWhiteSpace(request.fileName)
+                    ? $"level_{request.levelId}.zip"
+                    : request.fileName;
                 var lastPercentage = -1;
                 var lastReportAt = DateTime.MinValue;
                 var download = await AssetDownloader.DownloadAsync(
@@ -121,7 +116,6 @@ namespace AQRLiteHelper.Bridge
                     return BridgeResult.Error("DOWNLOAD_FAILED", $"谱面下载失败：{download.Message}", requestId);
                 }
 
-                DownloadOverlayState.Update(requestId, s => s.With(phase: OverlayPhase.Extracting));
                 var resolvedLevel = LevelArchiveExtractor.ResolveLevelPath(download.Path);
                 if (!resolvedLevel.Success)
                 {
@@ -133,7 +127,6 @@ namespace AQRLiteHelper.Bridge
                         requestId);
                 }
 
-                DownloadOverlayState.Update(requestId, s => s.With(levelPath: resolvedLevel.Path));
                 PublishProgress(requestId, request.levelId, "opening", 1L, 1L, "下载完成，正在打开谱面。");
                 var result = await _queue.Enqueue(() => OpenLevel(resolvedLevel.Path, request.levelId)).ConfigureAwait(false);
                 result.requestId = requestId;
@@ -215,18 +208,6 @@ namespace AQRLiteHelper.Bridge
                 message = message ?? string.Empty
             };
             _events.Publish("progress", requestId, BridgeJson.Serialize(progress));
-
-            // "success" only means the scene switch was requested; the overlay
-            // stays in Opening until it sees the level actually loaded.
-            var phase = state == "downloading" ? OverlayPhase.Downloading
-                : state == "opening" || state == "success" ? OverlayPhase.Opening
-                : state == "error" ? OverlayPhase.Error
-                : OverlayPhase.Preparing;
-            DownloadOverlayState.Update(requestId, s => s.With(
-                phase: phase,
-                loaded: loaded,
-                total: total,
-                message: message ?? string.Empty));
         }
 
         private static int CalculatePercentage(long loaded, long total)
@@ -253,7 +234,7 @@ namespace AQRLiteHelper.Bridge
             response.Headers["Access-Control-Max-Age"] = "86400";
         }
 
-        internal static bool IsAllowedOrigin(string? origin)
+        private static bool IsAllowedOrigin(string? origin)
         {
             if (string.IsNullOrWhiteSpace(origin))
             {

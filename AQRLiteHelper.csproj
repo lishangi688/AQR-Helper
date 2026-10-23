@@ -50,10 +50,6 @@
     <Reference Include="DOTweenPro">
       <HintPath>$(ManagedAssembliesDir)\DOTweenPro.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>$(ManagedAssembliesDir)\Newtonsoft.Json.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
     <Reference Include="RDTools">
       <HintPath>$(ManagedAssembliesDir)\RDTools.dll</HintPath>
     </Reference>
@@ -309,7 +305,6 @@
     <GameAssemblyFiles Include="Assembly-CSharp-firstpass.dll" />
     <GameAssemblyFiles Include="DOTween.dll" />
     <GameAssemblyFiles Include="DOTweenPro.dll" />
-    <GameAssemblyFiles Include="Newtonsoft.Json.dll" />
     <GameAssemblyFiles Include="RDTools.dll" />
     <GameAssemblyFiles Include="UnityEngine.dll" />
     <GameAssemblyFiles Include="UnityEngine.AccessibilityModule.dll" />
@@ -392,11 +387,6 @@
     <GameAssemblyFiles Include="UnityEngine.XRModule.dll" />
     <GameAssemblyFiles Include="UnityFileDialog.dll" />
     <GameAssemblyFiles Include="UnityModManager\UnityModManager.dll" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- 等级图标（由 tools/resize-grade-icons.ps1 缩放）嵌入 DLL / Grade icons embedded into the DLL -->
-    <EmbeddedResource Include="Assets\Grades\**\*.png" LogicalName="Grades/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

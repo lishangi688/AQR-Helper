@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -15,7 +14,6 @@ namespace AQRLiteHelper.Bridge
         private readonly BridgeRequestQueue _queue = new BridgeRequestQueue();
         private readonly SseEventHub _events = new SseEventHub();
         private readonly BridgeHandlers _handlers;
-        private readonly HashSet<string> _rejectedOrigins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private HttpListener? _listener;
         private Thread? _workerThread;
         private volatile bool _running;
@@ -130,8 +128,6 @@ namespace AQRLiteHelper.Bridge
 
             try
             {
-                LogRequest(request.HttpMethod, request.Url?.AbsolutePath ?? string.Empty, origin);
-
                 if (request.HttpMethod.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
                 {
                     BridgeHandlers.WriteOptions(response, origin);
@@ -195,30 +191,6 @@ namespace AQRLiteHelper.Bridge
                     // Ignore closed responses.
                 }
             }
-        }
-
-        private void LogRequest(string method, string path, string? origin)
-        {
-            if (!string.IsNullOrEmpty(origin) && !BridgeHandlers.IsAllowedOrigin(origin))
-            {
-                lock (_rejectedOrigins)
-                {
-                    if (_rejectedOrigins.Add(origin!))
-                    {
-                        Main.Mod?.Logger.Warning($"拒绝来自未授权来源的桥接请求：{origin}（{method} {path}）");
-                    }
-                }
-
-                return;
-            }
-
-            // The website polls /health every few seconds; logging it would flood Player.log.
-            if (path.TrimEnd('/').Equals("/health", StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            Main.Mod?.Logger.Log($"桥接请求：{method} {path}，来源 {origin ?? "-"}");
         }
 
         private static async Task<string> ReadBodyAsync(HttpListenerRequest request)
