@@ -9,13 +9,16 @@ namespace AQRLiteHelper
     public class Settings : UnityModManager.ModSettings
     {
         public const int MinDownloadThreads = 2;
-        public const int MaxDownloadThreads = 16;
+        public const int MaxDownloadThreads = 32;
+
+        // Above this, some servers or CDNs may start rate-limiting the connections.
+        public const int HighDownloadThreads = 16;
 
         public string DownloadDirectory = string.Empty;
 
         public bool MultiThreadDownload;
 
-        public int DownloadThreads = 4;
+        public int DownloadThreads = 8;
 
         [NonSerialized]
         private string _directoryError = string.Empty;
@@ -75,7 +78,9 @@ namespace AQRLiteHelper
                 GUILayout.Width(220f)));
             GUILayout.EndHorizontal();
             GUI.enabled = previousEnabled;
-            GUILayout.Label("服务器不支持分段下载或某段失败时，会自动改用单线程重新下载。");
+            GUILayout.Label(MultiThreadDownload && DownloadThreads > HighDownloadThreads
+                ? $"线程数超过 {HighDownloadThreads} 时可能被服务器限速，反而变慢。"
+                : "下载末段会自动拆分慢连接的剩余部分；服务器不支持分段下载或多次失败时，会改用单线程重新下载。");
         }
 
         public void OnSaveGUI(UnityModManager.ModEntry modEntry)
