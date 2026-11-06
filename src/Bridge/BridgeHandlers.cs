@@ -91,6 +91,7 @@ namespace AQRLiteHelper.Bridge
                     request.downloadUrl,
                     directory,
                     fileName,
+                    Main.Settings.EffectiveDownloadConnections,
                     CancellationToken.None,
                     (loaded, total) =>
                     {

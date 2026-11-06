@@ -8,7 +8,14 @@ namespace AQRLiteHelper
 {
     public class Settings : UnityModManager.ModSettings
     {
+        public const int MinDownloadThreads = 2;
+        public const int MaxDownloadThreads = 16;
+
         public string DownloadDirectory = string.Empty;
+
+        public bool MultiThreadDownload;
+
+        public int DownloadThreads = 4;
 
         [NonSerialized]
         private string _directoryError = string.Empty;
@@ -16,6 +23,10 @@ namespace AQRLiteHelper
         public string EffectiveDownloadDirectory => string.IsNullOrWhiteSpace(DownloadDirectory)
             ? GetDefaultDownloadDirectory()
             : DownloadDirectory.Trim();
+
+        public int EffectiveDownloadConnections => MultiThreadDownload
+            ? Mathf.Clamp(DownloadThreads, MinDownloadThreads, MaxDownloadThreads)
+            : 1;
 
         public void OnGUI(UnityModManager.ModEntry modEntry)
         {
@@ -48,6 +59,23 @@ namespace AQRLiteHelper
             {
                 GUILayout.Label("目录不存在时会自动创建，下载的谱面不会在游戏退出时删除。");
             }
+
+            GUILayout.Space(10f);
+            MultiThreadDownload = GUILayout.Toggle(MultiThreadDownload, " 多线程下载");
+
+            // Always drawn (only disabled) so IMGUI's control count stays stable between events.
+            var previousEnabled = GUI.enabled;
+            GUI.enabled = previousEnabled && MultiThreadDownload;
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"线程数：{DownloadThreads}", GUILayout.Width(90f));
+            DownloadThreads = Mathf.RoundToInt(GUILayout.HorizontalSlider(
+                Mathf.Clamp(DownloadThreads, MinDownloadThreads, MaxDownloadThreads),
+                MinDownloadThreads,
+                MaxDownloadThreads,
+                GUILayout.Width(220f)));
+            GUILayout.EndHorizontal();
+            GUI.enabled = previousEnabled;
+            GUILayout.Label("服务器不支持分段下载或某段失败时，会自动改用单线程重新下载。");
         }
 
         public void OnSaveGUI(UnityModManager.ModEntry modEntry)
